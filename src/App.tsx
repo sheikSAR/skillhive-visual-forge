@@ -19,6 +19,10 @@ import Signup from "@/pages/Auth/Signup";
 import NotFound from "@/pages/NotFound";
 import FreelancerDashboard from "@/pages/Dashboard/FreelancerDashboard";
 import ClientDashboard from "@/pages/Dashboard/ClientDashboard";
+import EditProfile from "@/pages/EditProfile";
+import PostProject from "@/pages/PostProject";
+import TrackProjects from "@/pages/TrackProjects";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
 
 // Layout Components
 import Navbar from "@/components/Navbar";
@@ -72,6 +76,26 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              
+              {/* Profile routes */}
+              <Route path="/edit-profile" element={
+                <PrivateRoute>
+                  <EditProfile />
+                </PrivateRoute>
+              } />
+              
+              {/* Client routes */}
+              <Route path="/post-project" element={
+                <PrivateRoute>
+                  <PostProject />
+                </PrivateRoute>
+              } />
+              <Route path="/track-projects" element={
+                <PrivateRoute>
+                  <TrackProjects />
+                </PrivateRoute>
+              } />
               
               {/* Dashboard routes */}
               <Route path="/dashboard" element={<DashboardRouter />} />

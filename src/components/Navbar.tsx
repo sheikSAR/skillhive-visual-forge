@@ -1,15 +1,25 @@
 
 import { useState, useEffect } from "react";
-import { NavLink, Link } from "react-router-dom";
-import { Sun, Moon, Menu, X } from "lucide-react";
+import { NavLink, Link, useLocation } from "react-router-dom";
+import { Sun, Moon, Menu, X, ChevronDown, User } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, profile, signOut, isFreelancer, isClient } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +31,59 @@ const Navbar = () => {
   }, []);
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Define navigation links based on user role
+  const getNavigationLinks = () => {
+    // Common links for all users
+    const commonLinks = [
+      { name: "About", path: "/about" },
+      { name: "Contact", path: "/contact" },
+    ];
+
+    // Links for non-authenticated users
+    if (!user) {
+      return [
+        { name: "Home", path: "/" },
+        { name: "How It Works", path: "/how-it-works" },
+        { name: "Browse Projects", path: "/projects" },
+        { name: "Apply as Freelancer", path: "/apply" },
+        ...commonLinks
+      ];
+    }
+
+    // Links for clients
+    if (isClient) {
+      return [
+        { name: "Client Dashboard", path: "/dashboard/client" },
+        { name: "Post Project", path: "/post-project" },
+        { name: "Track Projects", path: "/track-projects" },
+        ...commonLinks
+      ];
+    }
+
+    // Links for freelancers/students
+    if (isFreelancer) {
+      return [
+        { name: "Student Dashboard", path: "/dashboard/freelancer" },
+        { name: "Apply as Freelancer", path: "/apply" },
+        { name: "Browse Projects", path: "/projects" },
+        ...commonLinks
+      ];
+    }
+
+    // Default links if role is undefined
+    return [
+      { name: "Dashboard", path: "/dashboard" },
+      ...commonLinks
+    ];
+  };
+
+  const navigationLinks = getNavigationLinks();
 
   return (
     <nav
@@ -40,82 +103,57 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            Home
-          </NavLink>
-          <NavLink
-            to="/how-it-works"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            How It Works
-          </NavLink>
-          <NavLink
-            to="/projects"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            Browse Projects
-          </NavLink>
-          <NavLink
-            to="/apply"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            Apply as Freelancer
-          </NavLink>
-          <NavLink
-            to="/about"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            About
-          </NavLink>
-          <NavLink
-            to="/contact"
-            className={({ isActive }) =>
-              cn(
-                "font-medium transition-colors hover:text-skill-primary",
-                isActive ? "text-skill-primary" : "text-foreground"
-              )
-            }
-          >
-            Contact
-          </NavLink>
+          {navigationLinks.map((link) => (
+            <NavLink
+              key={link.name}
+              to={link.path}
+              className={({ isActive }) =>
+                cn(
+                  "font-medium transition-colors hover:text-skill-primary",
+                  isActive ? "text-skill-primary" : "text-foreground"
+                )
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
           
           <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Sign Up</Button>
-            </Link>
+            {!user ? (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign Up</Button>
+                </Link>
+              </>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 min-w-[150px] justify-between">
+                    <span className="truncate">
+                      {profile?.full_name || "User"}
+                    </span>
+                    <ChevronDown size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/edit-profile" className="cursor-pointer">
+                      Edit Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             <Button
               variant="ghost"
               size="icon"
@@ -129,6 +167,31 @@ const Navbar = () => {
 
         {/* Mobile Navigation */}
         <div className="md:hidden flex items-center">
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="mr-2">
+                  <User size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <div className="px-2 py-1.5 text-sm font-semibold">
+                  {profile?.full_name || "User"}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/edit-profile" className="cursor-pointer">
+                    Edit Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
           <Button
             variant="ghost"
             size="icon"
@@ -153,90 +216,36 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-background border-t border-border animate-slide-in-top">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </NavLink>
-            <NavLink
-              to="/how-it-works"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              How It Works
-            </NavLink>
-            <NavLink
-              to="/projects"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Browse Projects
-            </NavLink>
-            <NavLink
-              to="/apply"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Apply as Freelancer
-            </NavLink>
-            <NavLink
-              to="/about"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              About
-            </NavLink>
-            <NavLink
-              to="/contact"
-              className={({ isActive }) =>
-                cn(
-                  "py-2 font-medium transition-colors hover:text-skill-primary",
-                  isActive ? "text-skill-primary" : "text-foreground"
-                )
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact
-            </NavLink>
-            <div className="flex gap-2 mt-2">
-              <Link to="/login" className="w-1/2">
-                <Button variant="outline" className="w-full" onClick={() => setMobileMenuOpen(false)}>
-                  Login
-                </Button>
-              </Link>
-              <Link to="/signup" className="w-1/2">
-                <Button className="w-full" onClick={() => setMobileMenuOpen(false)}>
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+            {navigationLinks.map((link) => (
+              <NavLink
+                key={link.name}
+                to={link.path}
+                className={({ isActive }) =>
+                  cn(
+                    "py-2 font-medium transition-colors hover:text-skill-primary",
+                    isActive ? "text-skill-primary" : "text-foreground"
+                  )
+                }
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.name}
+              </NavLink>
+            ))}
+            
+            {!user && (
+              <div className="flex gap-2 mt-2">
+                <Link to="/login" className="w-1/2">
+                  <Button variant="outline" className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/signup" className="w-1/2">
+                  <Button className="w-full" onClick={() => setMobileMenuOpen(false)}>
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
