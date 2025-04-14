@@ -26,40 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const setData = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error(error);
-      }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Fetch user profile if user exists
-      if (session?.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error(profileError);
-        } else {
-          setProfile(profile);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Session fetch error:", error);
+          toast.error("Failed to fetch user session");
         }
-      }
-      
-      setLoading(false);
-    };
-
-    setData();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+        
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Update profile when auth state changes
+        // Fetch user profile if user exists
         if (session?.user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -68,9 +45,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .single();
           
           if (profileError) {
-            console.error(profileError);
+            console.error("Profile fetch error:", profileError);
           } else {
             setProfile(profile);
+          }
+        }
+      } catch (err) {
+        console.error("Unexpected error in session setup:", err);
+        toast.error("An unexpected error occurred. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    setData();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state changed:", event);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Update profile when auth state changes
+        if (session?.user) {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error("Profile fetch error on auth change:", profileError);
+            } else {
+              setProfile(profile);
+            }
+          } catch (err) {
+            console.error("Profile fetch unexpected error:", err);
           }
         } else {
           setProfile(null);
@@ -88,63 +99,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign up a new user
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
+      setLoading(true);
+      console.log("Starting signup process...");
+      
+      // First check if Supabase is accessible
+      try {
+        await supabase.from('health_check').select('*').limit(1);
+      } catch (err) {
+        console.error("Supabase connectivity test failed:", err);
+        toast.error("Cannot connect to the backend. Please check your connection or try again later.");
+        return;
+      }
+      
+      // Create the user account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        // Create a profile for the new user
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: data.user.id,
-              full_name: fullName,
-              is_freelancer: false, // Default as client
-            },
-          ]);
-
-        if (profileError) throw profileError;
-        
-        toast.success("Account created successfully! Please check your email to verify your account.");
+      if (error) {
+        console.error("Signup error:", error);
+        toast.error(error.message || "Failed to sign up");
+        return;
       }
-    } catch (error) {
-      console.error("Error signing up:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to sign up");
-      throw error;
+
+      if (!data.user) {
+        toast.error("User account creation failed. Please try again.");
+        return;
+      }
+
+      console.log("User created, creating profile...");
+      
+      // Create a profile for the new user
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            user_id: data.user.id,
+            full_name: fullName,
+            is_freelancer: false, // Default as client
+          },
+        ]);
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        toast.error("Account created but profile setup failed. Please contact support.");
+        return;
+      }
+      
+      toast.success("Account created successfully! Please check your email to verify your account.");
+    } catch (error: any) {
+      console.error("Unexpected signup error:", error);
+      toast.error(error?.message || "Failed to sign up. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   // Sign in existing user
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Sign in error:", error);
+        toast.error(error.message || "Failed to sign in");
+        return;
+      }
       toast.success("Signed in successfully!");
-    } catch (error) {
-      console.error("Error signing in:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to sign in");
-      throw error;
+    } catch (error: any) {
+      console.error("Unexpected signin error:", error);
+      toast.error(error?.message || "Failed to sign in. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   // Sign out
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Sign out error:", error);
+        toast.error(error.message || "Failed to sign out");
+        return;
+      }
       toast.success("Signed out successfully");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to sign out");
-      throw error;
+    } catch (error: any) {
+      console.error("Unexpected signout error:", error);
+      toast.error(error?.message || "Failed to sign out. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 

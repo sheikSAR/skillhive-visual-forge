@@ -16,6 +16,8 @@ import Contact from "@/pages/Contact";
 import Login from "@/pages/Auth/Login";
 import Signup from "@/pages/Auth/Signup";
 import NotFound from "@/pages/NotFound";
+import FreelancerDashboard from "@/pages/Dashboard/FreelancerDashboard";
+import ClientDashboard from "@/pages/Dashboard/ClientDashboard";
 
 // Layout Components
 import Navbar from "@/components/Navbar";
@@ -41,6 +43,8 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard/freelancer" element={<FreelancerDashboard />} />
+              <Route path="/dashboard/client" element={<ClientDashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
