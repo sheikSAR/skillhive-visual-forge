@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -9,7 +9,7 @@ type AuthContextType = {
   user: User | null;
   profile: any | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, accountType?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isFreelancer: boolean;
@@ -97,19 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Sign up a new user
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, accountType = "client") => {
     try {
       setLoading(true);
       console.log("Starting signup process...");
-      
-      // First check if Supabase is accessible
-      try {
-        await supabase.from('health_check').select('*').limit(1);
-      } catch (err) {
-        console.error("Supabase connectivity test failed:", err);
-        toast.error("Cannot connect to the backend. Please check your connection or try again later.");
-        return;
-      }
       
       // Create the user account
       const { data, error } = await supabase.auth.signUp({
@@ -137,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           {
             user_id: data.user.id,
             full_name: fullName,
-            is_freelancer: false, // Default as client
+            is_freelancer: accountType === "freelancer", // Set based on account type
           },
         ]);
 

@@ -50,7 +50,7 @@ const Signup = () => {
     setSignupError(null);
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, data.fullName);
+      await signUp(data.email, data.password, data.fullName, data.accountType);
       navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
