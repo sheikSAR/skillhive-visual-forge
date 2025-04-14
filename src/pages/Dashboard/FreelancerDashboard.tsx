@@ -44,34 +44,37 @@ const FreelancerDashboard = () => {
 
         if (applicationsError) throw applicationsError;
 
+        // Get approved applications projects
+        const approvedAppIds = applicationsData
+          ?.filter(app => app.status === 'approved')
+          .map(app => app.project_id) || [];
+
         // Fetch active projects (approved applications)
         const { data: activeProjectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
-          .in('id', applicationsData
-            .filter(app => app.status === 'approved')
-            .map(app => app.project_id)
-          );
+          .in('id', approvedAppIds.length > 0 ? approvedAppIds : ['no-matching-id']);
 
         if (projectsError) throw projectsError;
 
         // Calculate earnings (mock data)
         const mockEarnings = {
-          total: activeProjectsData.reduce((acc, project) => acc + project.budget, 0),
-          pending: activeProjectsData.filter(p => p.status === 'assigned').reduce((acc, project) => acc + project.budget, 0),
-          completed: activeProjectsData.filter(p => p.status === 'completed').reduce((acc, project) => acc + project.budget, 0)
+          total: activeProjectsData?.reduce((acc, project) => acc + Number(project.budget), 0) || 0,
+          pending: activeProjectsData?.filter(p => p.status === 'assigned').reduce((acc, project) => acc + Number(project.budget), 0) || 0,
+          completed: activeProjectsData?.filter(p => p.status === 'completed').reduce((acc, project) => acc + Number(project.budget), 0) || 0
         };
 
         // Set stats
         const mockStats = {
-          completedProjects: activeProjectsData.filter(p => p.status === 'completed').length,
-          pendingApplications: applicationsData.filter(a => a.status === 'pending').length,
-          rejectedApplications: applicationsData.filter(a => a.status === 'rejected').length,
+          completedProjects: activeProjectsData?.filter(p => p.status === 'completed').length || 0,
+          pendingApplications: applicationsData?.filter(a => a.status === 'pending').length || 0,
+          rejectedApplications: applicationsData?.filter(a => a.status === 'rejected').length || 0,
           averageRating: 4.8 // Mock rating
         };
 
-        setApplications(applicationsData || []);
-        setActiveProjects(activeProjectsData || []);
+        // Cast the data to our expected types
+        setApplications(applicationsData as ApplicationType[] || []);
+        setActiveProjects(activeProjectsData as ProjectType[] || []);
         setEarnings(mockEarnings);
         setStats(mockStats);
       } catch (error) {

@@ -14,7 +14,7 @@ export type ProjectType = {
   deadline: string;
   category: string;
   client_id: string;
-  status: 'open' | 'assigned' | 'completed' | 'cancelled';
+  status: string; // Changed from literal types to string to match database
   created_at: string;
   skills?: string[];
 };
@@ -37,8 +37,8 @@ export type ApplicationType = {
   project_id: string;
   user_id: string;
   cover_letter: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: string; // Changed from literal types to string to match database
   created_at: string;
-  profile?: UserProfileType;
-  project?: ProjectType;
+  profile?: UserProfileType | any; // Added any to handle errors with relation
+  project?: ProjectType | any; // Added any to handle errors with relation
 };

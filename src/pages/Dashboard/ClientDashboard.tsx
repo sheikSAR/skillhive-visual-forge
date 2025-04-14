@@ -48,24 +48,26 @@ const ClientDashboard = () => {
         const { data: applicationsData, error: applicationsError } = await supabase
           .from('applications')
           .select('*, profile:profiles(*)')
-          .in('project_id', projectsData.map(p => p.id) || []);
+          .in('project_id', projectsData?.map(p => p.id) || []);
 
         if (applicationsError) throw applicationsError;
 
         // Calculate stats
-        const activeProjects = projectsData.filter(p => p.status === 'open' || p.status === 'assigned').length;
-        const completedProjects = projectsData.filter(p => p.status === 'completed').length;
+        const activeProjects = projectsData?.filter(p => p.status === 'open' || p.status === 'assigned').length || 0;
+        const completedProjects = projectsData?.filter(p => p.status === 'completed').length || 0;
         const totalSpent = projectsData
-          .filter(p => p.status === 'completed')
-          .reduce((acc, project) => acc + project.budget, 0);
+          ?.filter(p => p.status === 'completed')
+          .reduce((acc, project) => acc + Number(project.budget), 0) || 0;
 
-        setProjects(projectsData || []);
-        setApplications(applicationsData || []);
+        // Cast the data to our expected types
+        setProjects(projectsData as ProjectType[] || []);
+        setApplications(applicationsData as ApplicationType[] || []);
+        
         setStats({
-          totalProjects: projectsData.length,
+          totalProjects: projectsData?.length || 0,
           activeProjects,
           completedProjects,
-          totalApplications: applicationsData.length,
+          totalApplications: applicationsData?.length || 0,
           totalSpent
         });
       } catch (error) {
