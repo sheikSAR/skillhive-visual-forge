@@ -86,6 +86,9 @@ const App = () => (
                 </PrivateRoute>
               } />
               
+              {/* Redirect /dashboard/student to /dashboard for proper routing */}
+              <Route path="/dashboard/student" element={<Navigate to="/dashboard" replace />} />
+              
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
