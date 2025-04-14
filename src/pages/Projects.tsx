@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabaseTyped as supabase } from "@/lib/supabase";
-import { ProjectType } from "@/lib/supabase";
+import { supabase, ProjectType } from "@/lib/supabase";
 import { toast } from "sonner";
 
 // Animation variants

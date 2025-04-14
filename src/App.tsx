@@ -3,9 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { useAuth } from "@/contexts/AuthContext";
 
 // Pages
 import Home from "@/pages/Home";
@@ -26,34 +25,6 @@ import Footer from "@/components/Footer";
 
 const queryClient = new QueryClient();
 
-// Private route component to protect dashboard routes
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-  
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
-// Dashboard router that redirects to the appropriate dashboard
-const DashboardRouter = () => {
-  const { isFreelancer, isClient, loading } = useAuth();
-  
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-  
-  if (isFreelancer) {
-    return <Navigate to="/dashboard/freelancer" replace />;
-  } else if (isClient) {
-    return <Navigate to="/dashboard/client" replace />;
-  } else {
-    return <Navigate to="/login" replace />;
-  }
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -72,24 +43,9 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              
-              {/* Dashboard routes */}
-              <Route path="/dashboard" element={<DashboardRouter />} />
-              <Route path="/dashboard/freelancer" element={
-                <PrivateRoute>
-                  <FreelancerDashboard />
-                </PrivateRoute>
-              } />
-              <Route path="/dashboard/client" element={
-                <PrivateRoute>
-                  <ClientDashboard />
-                </PrivateRoute>
-              } />
-              
-              {/* Redirect /dashboard/student to /dashboard for proper routing */}
-              <Route path="/dashboard/student" element={<Navigate to="/dashboard" replace />} />
-              
-              {/* Catch-all route */}
+              <Route path="/dashboard/freelancer" element={<FreelancerDashboard />} />
+              <Route path="/dashboard/client" element={<ClientDashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

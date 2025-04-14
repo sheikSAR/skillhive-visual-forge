@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabaseTyped as supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { ProjectType, ApplicationType } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";

@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabaseTyped as supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -9,7 +9,7 @@ type AuthContextType = {
   user: User | null;
   profile: any | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, accountType?: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isFreelancer: boolean;
@@ -97,21 +97,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Sign up a new user
-  const signUp = async (email: string, password: string, fullName: string, accountType = "client") => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
       console.log("Starting signup process...");
+      
+      // First check if Supabase is accessible
+      try {
+        await supabase.from('health_check').select('*').limit(1);
+      } catch (err) {
+        console.error("Supabase connectivity test failed:", err);
+        toast.error("Cannot connect to the backend. Please check your connection or try again later.");
+        return;
+      }
       
       // Create the user account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-            is_freelancer: accountType === "freelancer"
-          }
-        }
       });
 
       if (error) {
@@ -125,7 +128,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      console.log("User created successfully");
+      console.log("User created, creating profile...");
+      
+      // Create a profile for the new user
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            user_id: data.user.id,
+            full_name: fullName,
+            is_freelancer: false, // Default as client
+          },
+        ]);
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        toast.error("Account created but profile setup failed. Please contact support.");
+        return;
+      }
       
       toast.success("Account created successfully! Please check your email to verify your account.");
     } catch (error: any) {
