@@ -1,19 +1,11 @@
 
 import { createClient } from "@supabase/supabase-js";
+import { supabase as integrationsSupabase } from "@/integrations/supabase/client";
 
-// Set default values for local development or use environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project-url.supabase.co";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "your-anon-key";
+// Use the integration client directly to avoid duplication
+export const supabase = integrationsSupabase;
 
-// Check if we're running in production
-const isProd = import.meta.env.PROD;
-
-if (isProd && (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY)) {
-  console.warn("Warning: Missing Supabase credentials in production. Please set environment variables.");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Re-export types for convenience
 export type ProjectType = {
   id: string;
   title: string;

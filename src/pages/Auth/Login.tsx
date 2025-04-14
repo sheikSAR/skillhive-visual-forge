@@ -19,7 +19,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { signIn } = useAuth();
+  const { signIn, isFreelancer, isClient } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +36,17 @@ const Login = () => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
-      navigate("/dashboard");
+      
+      // Wait a moment for auth state to update
+      setTimeout(() => {
+        if (isFreelancer) {
+          navigate("/dashboard/freelancer");
+        } else if (isClient) {
+          navigate("/dashboard/client");
+        } else {
+          navigate("/");
+        }
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
     } finally {
