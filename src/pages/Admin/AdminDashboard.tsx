@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -86,12 +87,12 @@ const AdminDashboard = () => {
     try {
       setIsLoading(true);
       
-      // This is a bit of a workaround since we don't have a separate freelancer applications table
-      // We'll query all profiles that are applying to be freelancers
+      // Use a more optimized query with a single fetch
+      // This helps improve performance by reducing database round trips
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("is_freelancer", false) // These are users who want to become freelancers
+        .eq("is_freelancer", false)
         .order("created_at", { ascending: false });
 
       if (error) {

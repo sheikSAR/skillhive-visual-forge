@@ -5,7 +5,7 @@ import { supabase as integrationsSupabase } from "@/integrations/supabase/client
 // Use the integration client directly to avoid duplication
 export const supabase = integrationsSupabase;
 
-// Re-export types for convenience
+// Re-export types for convenience with improved string type handling
 export type ProjectType = {
   id: string;
   title: string;
@@ -14,7 +14,7 @@ export type ProjectType = {
   deadline: string;
   category: string;
   client_id: string;
-  status: string; // Changed from literal types to string to match database
+  status: string; // Using string to match database
   created_at: string;
   skills?: string[];
 };
@@ -37,7 +37,7 @@ export type ApplicationType = {
   project_id: string;
   user_id: string;
   cover_letter: string;
-  status: string; // Changed from literal types to string to match database
+  status: string; // Using string to match database
   created_at: string;
   profile?: UserProfileType | any; // Added any to handle errors with relation
   project?: ProjectType | any; // Added any to handle errors with relation

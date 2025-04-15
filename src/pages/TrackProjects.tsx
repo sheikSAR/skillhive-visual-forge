@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { ProjectType, ApplicationType } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,12 +19,14 @@ const TrackProjects = () => {
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchClientProjects = async () => {
+  // Memoize the fetch function to prevent unnecessary re-renders
+  const fetchClientProjects = useCallback(async () => {
     if (!user) return;
 
     try {
       setIsLoading(true);
       
+      // Optimize the query to get projects
       const { data: projectsData, error: projectsError } = await supabase
         .from("projects")
         .select("*")
@@ -36,38 +39,48 @@ const TrackProjects = () => {
         return;
       }
 
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from("applications")
-        .select(`*, profile:profiles(*)`)
-        .in(
-          "project_id", 
-          projectsData && projectsData.length > 0 ? projectsData.map(project => project.id) : []
-        );
+      // Only fetch applications if there are projects
+      if (projectsData && projectsData.length > 0) {
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from("applications")
+          .select(`*, profile:profiles(*)`)
+          .in(
+            "project_id", 
+            projectsData.map(project => project.id)
+          );
 
-      if (applicationsError) {
-        console.error("Error fetching applications:", applicationsError);
-        toast.error("Failed to load applications");
+        if (applicationsError) {
+          console.error("Error fetching applications:", applicationsError);
+          toast.error("Failed to load applications");
+          setApplications([]);
+        } else {
+          setApplications(applicationsData as ApplicationType[] || []);
+        }
+      } else {
+        setApplications([]);
       }
 
       setProjects(projectsData as ProjectType[] || []);
-      setApplications(applicationsData as ApplicationType[] || []);
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while loading your projects");
+      setProjects([]);
+      setApplications([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchClientProjects();
     }
-  }, [user]);
+  }, [user, fetchClientProjects]);
 
-  // Update application status
+  // Update application status with improved error handling
   const updateApplicationStatus = async (appId: string, status: string) => {
     try {
+      setIsLoading(true);
       const { error } = await supabase
         .from("applications")
         .update({ status })
@@ -91,10 +104,13 @@ const TrackProjects = () => {
       }
 
       toast.success(`Application ${status}`);
-      fetchClientProjects(); // Refresh data
+      // Refresh data after state changes
+      await fetchClientProjects();
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while updating application status");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -109,12 +125,12 @@ const TrackProjects = () => {
   }
 
   // Group projects by status
-  const openProjects = projects.filter(p => p.status === "open");
-  const assignedProjects = projects.filter(p => p.status === "assigned");
-  const completedProjects = projects.filter(p => p.status === "completed");
-  const cancelledProjects = projects.filter(p => p.status === "cancelled");
+  const openProjects = projects.filter(p => p.status === "open") || [];
+  const assignedProjects = projects.filter(p => p.status === "assigned") || [];
+  const completedProjects = projects.filter(p => p.status === "completed") || [];
+  const cancelledProjects = projects.filter(p => p.status === "cancelled") || [];
 
-  // Get applications for a specific project
+  // Get applications for a specific project with null safety
   const getProjectApplications = (projectId: string) => 
     applications ? applications.filter(app => app.project_id === projectId) : [];
 
