@@ -203,7 +203,7 @@ const AdminDashboard = () => {
                           <TableCell className="font-medium">{app.profile.full_name}</TableCell>
                           <TableCell>{format(new Date(app.created_at), "PPP")}</TableCell>
                           <TableCell>
-                            <Badge variant={app.status === "approved" ? "success" : "secondary"}>
+                            <Badge variant={app.status === "approved" ? "secondary" : "default"}>
                               {app.status.toUpperCase()}
                             </Badge>
                           </TableCell>
@@ -284,3 +284,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
