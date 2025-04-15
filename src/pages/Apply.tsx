@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { z } from "zod";
@@ -52,6 +51,11 @@ const Apply = () => {
     setSubmitting(true);
     
     try {
+      if (!user) {
+        toast.error("You must be logged in to apply");
+        return;
+      }
+      
       // In a real implementation, we would upload the resume and submit to Supabase
       let resumeUrl = "";
       
@@ -75,29 +79,19 @@ const Apply = () => {
         resumeUrl = `https://example.com/resumes/${filePath}`;
       }
       
-      // Submit application to database
-      /*
-      const { error } = await supabase
-        .from('freelancer_applications')
-        .insert({
-          user_id: user?.id,
-          full_name: data.fullName,
-          email: data.email,
-          university: data.university,
-          major: data.major,
+      // First, update the profile to indicate interest in becoming freelancer
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          bio: data.experience,
           skills: data.skills.split(',').map(skill => skill.trim()),
-          experience: data.experience,
-          portfolio_url: data.portfolio,
-          github_url: data.github,
-          resume_url: resumeUrl,
-          status: 'pending',
-        });
+          // Do not set is_freelancer to true yet - wait for admin approval
+        })
+        .eq('user_id', user.id);
         
-      if (error) throw error;
-      */
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (profileError) {
+        throw profileError;
+      }
       
       toast.success("Your application has been submitted successfully!");
       setSubmitted(true);

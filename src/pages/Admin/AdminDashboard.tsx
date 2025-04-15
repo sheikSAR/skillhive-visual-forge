@@ -6,19 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { Loader2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
+// Import refactored components
+import FreelancerApplicationsList from "@/components/Admin/FreelancerApplicationsList";
+import ProjectsManagement from "@/components/Admin/ProjectsManagement";
+import UsersManagement from "@/components/Admin/UsersManagement";
 
 type FreelancerApplication = {
   id: string;
@@ -38,6 +32,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [freelancerApplications, setFreelancerApplications] = useState<FreelancerApplication[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -64,8 +59,6 @@ const AdminDashboard = () => {
 
     checkAdmin();
   }, [navigate, isAdmin, authLoading, refreshTrigger]);
-
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -108,35 +101,6 @@ const AdminDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const approveFreelancer = async (userId: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_freelancer: true })
-        .eq("user_id", userId);
-
-      if (error) {
-        console.error("Error approving freelancer:", error);
-        toast.error("Failed to approve freelancer application");
-        return;
-      }
-
-      toast.success("Freelancer application approved");
-      fetchFreelancerApplications(); // Refresh data
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      toast.error("An error occurred while approving freelancer application");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const rejectFreelancer = async (userId: string) => {
-    toast.info("Freelancer application rejected");
-    // In a real application, you might update some status field or delete the application
   };
 
   // If still checking authentication
@@ -182,97 +146,20 @@ const AdminDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {freelancerApplications.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No student applications yet.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableCaption>List of student applications</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Application Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {freelancerApplications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-medium">{app.profile.full_name}</TableCell>
-                          <TableCell>{format(new Date(app.created_at), "PPP")}</TableCell>
-                          <TableCell>
-                            <Badge variant={app.status === "approved" ? "secondary" : "default"}>
-                              {app.status.toUpperCase()}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {app.status === "pending" ? (
-                              <div className="flex gap-2 justify-end">
-                                <Button 
-                                  size="sm"
-                                  onClick={() => approveFreelancer(app.user_id)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <CheckCircle size={16} /> Approve
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => rejectFreelancer(app.user_id)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <XCircle size={16} /> Reject
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-green-600 font-medium flex items-center justify-end">
-                                <CheckCircle size={16} className="mr-1" /> Approved
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                <FreelancerApplicationsList 
+                  applications={freelancerApplications} 
+                  onRefresh={fetchFreelancerApplications} 
+                />
               </CardContent>
             </Card>
           </TabsContent>
           
           <TabsContent value="projects">
-            <Card>
-              <CardHeader>
-                <CardTitle>Projects Management</CardTitle>
-                <CardDescription>
-                  View and manage all projects
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Project management functionality would go here */}
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Project management functionality coming soon.</p>
-                </div>
-              </CardContent>
-            </Card>
+            <ProjectsManagement />
           </TabsContent>
           
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  View and manage all users
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* User management functionality would go here */}
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">User management functionality coming soon.</p>
-                </div>
-              </CardContent>
-            </Card>
+            <UsersManagement />
           </TabsContent>
         </Tabs>
       </div>
@@ -284,4 +171,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
