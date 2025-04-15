@@ -19,6 +19,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     timeout: 30000 // Extend timeout for better connection stability
   },
   global: {
-    fetch: (...args) => fetch(...args) // Use standard fetch for better reliability
+    fetch: (url, options) => fetch(url, options) // Fix the spread argument error
   }
 });

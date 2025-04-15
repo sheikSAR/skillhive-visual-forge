@@ -11,6 +11,7 @@ import { AlertCircle, BookOpen, DollarSign, CheckCircle } from "lucide-react";
 import DashboardWrapper from "@/components/DashboardWrapper";
 import DashboardScene from "@/components/3D/DashboardScene";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const FreelancerDashboard = () => {
   const { user, profile } = useAuth();
@@ -42,43 +43,59 @@ const FreelancerDashboard = () => {
           .select('*, project:projects(*)')
           .eq('user_id', user.id);
 
-        if (applicationsError) throw applicationsError;
+        if (applicationsError) {
+          throw applicationsError;
+        }
+
+        // Safely handle null data
+        const safeApplicationsData = applicationsData || [];
 
         // Get approved applications projects
-        const approvedAppIds = applicationsData
-          ?.filter(app => app.status === 'approved')
-          .map(app => app.project_id) || [];
+        const approvedAppIds = safeApplicationsData
+          .filter(app => app.status === 'approved')
+          .map(app => app.project_id);
 
-        // Fetch active projects (approved applications)
-        const { data: activeProjectsData, error: projectsError } = await supabase
-          .from('projects')
-          .select('*')
-          .in('id', approvedAppIds.length > 0 ? approvedAppIds : ['no-matching-id']);
+        // Only fetch if we have approved application IDs
+        let activeProjectsData: any[] = [];
+        if (approvedAppIds.length > 0) {
+          // Fetch active projects (approved applications)
+          const { data, error: projectsError } = await supabase
+            .from('projects')
+            .select('*')
+            .in('id', approvedAppIds);
 
-        if (projectsError) throw projectsError;
+          if (projectsError) {
+            throw projectsError;
+          }
+          
+          activeProjectsData = data || [];
+        }
 
-        // Calculate earnings (mock data)
+        // Calculate earnings (from approved projects)
         const mockEarnings = {
-          total: activeProjectsData?.reduce((acc, project) => acc + Number(project.budget), 0) || 0,
-          pending: activeProjectsData?.filter(p => p.status === 'assigned').reduce((acc, project) => acc + Number(project.budget), 0) || 0,
-          completed: activeProjectsData?.filter(p => p.status === 'completed').reduce((acc, project) => acc + Number(project.budget), 0) || 0
+          total: activeProjectsData.reduce((acc, project) => acc + Number(project.budget || 0), 0),
+          pending: activeProjectsData.filter(p => p.status === 'assigned').reduce((acc, project) => acc + Number(project.budget || 0), 0),
+          completed: activeProjectsData.filter(p => p.status === 'completed').reduce((acc, project) => acc + Number(project.budget || 0), 0)
         };
 
         // Set stats
         const mockStats = {
-          completedProjects: activeProjectsData?.filter(p => p.status === 'completed').length || 0,
-          pendingApplications: applicationsData?.filter(a => a.status === 'pending').length || 0,
-          rejectedApplications: applicationsData?.filter(a => a.status === 'rejected').length || 0,
+          completedProjects: activeProjectsData.filter(p => p.status === 'completed').length || 0,
+          pendingApplications: safeApplicationsData.filter(a => a.status === 'pending').length || 0,
+          rejectedApplications: safeApplicationsData.filter(a => a.status === 'rejected').length || 0,
           averageRating: 4.8 // Mock rating
         };
 
-        // Cast the data to our expected types
-        setApplications(applicationsData as ApplicationType[] || []);
-        setActiveProjects(activeProjectsData as ProjectType[] || []);
+        // Set state with the data
+        setApplications(safeApplicationsData);
+        setActiveProjects(activeProjectsData);
         setEarnings(mockEarnings);
         setStats(mockStats);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        toast.error("Failed to load dashboard data");
+        setApplications([]);
+        setActiveProjects([]);
       } finally {
         setIsLoading(false);
       }
@@ -88,7 +105,7 @@ const FreelancerDashboard = () => {
   }, [user, navigate]);
 
   return (
-    <DashboardWrapper title="Freelancer Dashboard" isLoading={isLoading}>
+    <DashboardWrapper title="Student Dashboard" isLoading={isLoading}>
       <TabsContent value="overview" className="space-y-4">
         {/* 3D Interactive Scene */}
         <div ref={sceneContainer} className="h-64 rounded-lg overflow-hidden mb-6">
@@ -266,8 +283,12 @@ const FreelancerDashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
-                            View Details
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate('/projects')}
+                          >
+                            Browse Projects
                           </Button>
                         </TableCell>
                       </TableRow>

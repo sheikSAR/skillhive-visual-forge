@@ -70,8 +70,8 @@ const Navbar = () => {
     if (isFreelancer) {
       return [
         { name: "Student Dashboard", path: "/dashboard/freelancer" },
-        { name: "Apply as Freelancer", path: "/apply" },
         { name: "Browse Projects", path: "/projects" },
+        { name: "Apply as Freelancer", path: "/apply" },
         ...commonLinks
       ];
     }
@@ -140,7 +140,11 @@ const Navbar = () => {
                     <ChevronDown size={16} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-sm font-medium">
+                    {isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
+                  </div>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/edit-profile" className="cursor-pointer">
                       Edit Profile
@@ -177,6 +181,9 @@ const Navbar = () => {
               <DropdownMenuContent align="end">
                 <div className="px-2 py-1.5 text-sm font-semibold">
                   {profile?.full_name || "User"}
+                </div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  {isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

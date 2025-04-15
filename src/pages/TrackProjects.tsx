@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,14 +18,12 @@ const TrackProjects = () => {
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Memoize the fetch function to prevent unnecessary re-renders
   const fetchClientProjects = useCallback(async () => {
     if (!user) return;
 
     try {
       setIsLoading(true);
       
-      // Optimize the query to get projects
       const { data: projectsData, error: projectsError } = await supabase
         .from("projects")
         .select("*")
@@ -36,17 +33,21 @@ const TrackProjects = () => {
       if (projectsError) {
         console.error("Error fetching projects:", projectsError);
         toast.error("Failed to load projects");
+        setProjects([]);
+        setApplications([]);
         return;
       }
 
-      // Only fetch applications if there are projects
-      if (projectsData && projectsData.length > 0) {
+      const safeProjectsData = projectsData || [];
+      setProjects(safeProjectsData);
+
+      if (safeProjectsData.length > 0) {
         const { data: applicationsData, error: applicationsError } = await supabase
           .from("applications")
           .select(`*, profile:profiles(*)`)
           .in(
             "project_id", 
-            projectsData.map(project => project.id)
+            safeProjectsData.map(project => project.id)
           );
 
         if (applicationsError) {
@@ -54,13 +55,11 @@ const TrackProjects = () => {
           toast.error("Failed to load applications");
           setApplications([]);
         } else {
-          setApplications(applicationsData as ApplicationType[] || []);
+          setApplications(applicationsData || []);
         }
       } else {
         setApplications([]);
       }
-
-      setProjects(projectsData as ProjectType[] || []);
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while loading your projects");
@@ -77,7 +76,6 @@ const TrackProjects = () => {
     }
   }, [user, fetchClientProjects]);
 
-  // Update application status with improved error handling
   const updateApplicationStatus = async (appId: string, status: string) => {
     try {
       setIsLoading(true);
@@ -92,7 +90,6 @@ const TrackProjects = () => {
         return;
       }
 
-      // If approving, update project status to assigned
       if (status === "approved") {
         const application = applications.find(app => app.id === appId);
         if (application) {
@@ -104,7 +101,6 @@ const TrackProjects = () => {
       }
 
       toast.success(`Application ${status}`);
-      // Refresh data after state changes
       await fetchClientProjects();
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -124,15 +120,15 @@ const TrackProjects = () => {
     return null;
   }
 
-  // Group projects by status
   const openProjects = projects.filter(p => p.status === "open") || [];
   const assignedProjects = projects.filter(p => p.status === "assigned") || [];
   const completedProjects = projects.filter(p => p.status === "completed") || [];
   const cancelledProjects = projects.filter(p => p.status === "cancelled") || [];
 
-  // Get applications for a specific project with null safety
-  const getProjectApplications = (projectId: string) => 
-    applications ? applications.filter(app => app.project_id === projectId) : [];
+  const getProjectApplications = (projectId: string) => {
+    if (!applications) return [];
+    return applications.filter(app => app.project_id === projectId);
+  };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -172,7 +168,6 @@ const TrackProjects = () => {
             </TabsTrigger>
           </TabsList>
           
-          {/* Open Projects Tab */}
           <TabsContent value="open" className="space-y-6">
             {openProjects.length === 0 ? (
               <div className="text-center py-8">
@@ -225,7 +220,9 @@ const TrackProjects = () => {
                     </div>
 
                     <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-2">Applications ({getProjectApplications(project.id).length})</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        Applications ({getProjectApplications(project.id).length})
+                      </h3>
                       {getProjectApplications(project.id).length === 0 ? (
                         <p className="text-muted-foreground">No applications yet.</p>
                       ) : (
@@ -277,7 +274,6 @@ const TrackProjects = () => {
             )}
           </TabsContent>
           
-          {/* Assigned Projects Tab */}
           <TabsContent value="assigned" className="space-y-6">
             {assignedProjects.length === 0 ? (
               <div className="text-center py-8">
@@ -300,8 +296,7 @@ const TrackProjects = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {/* Similar content structure as in open projects */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Budget</p>
                         <p>${project.budget}</p>
@@ -361,7 +356,6 @@ const TrackProjects = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {/* Similar structure but with simplified content for completed projects */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Budget</p>
@@ -400,7 +394,6 @@ const TrackProjects = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {/* Similar structure but with simplified content for cancelled projects */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Budget</p>
