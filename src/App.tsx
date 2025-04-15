@@ -41,15 +41,32 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-// Dashboard router that redirects to the appropriate dashboard
-const DashboardRouter = () => {
-  const { isFreelancer, isClient, loading } = useAuth();
+// Admin route component to protect admin routes
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAdmin } = useAuth();
   
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
-  if (isFreelancer) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return isAdmin ? <>{children}</> : <Navigate to="/" replace />;
+};
+
+// Dashboard router that redirects to the appropriate dashboard
+const DashboardRouter = () => {
+  const { isFreelancer, isClient, isAdmin, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+  
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  } else if (isFreelancer) {
     return <Navigate to="/dashboard/freelancer" replace />;
   } else if (isClient) {
     return <Navigate to="/dashboard/client" replace />;
@@ -76,7 +93,11 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } />
               
               {/* Profile routes */}
               <Route path="/edit-profile" element={

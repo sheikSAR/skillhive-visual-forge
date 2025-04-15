@@ -19,7 +19,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { signIn, isFreelancer, isClient } = useAuth();
+  const { signIn, isFreelancer, isClient, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,9 @@ const Login = () => {
       
       // Wait a moment for auth state to update
       setTimeout(() => {
-        if (isFreelancer) {
+        if (data.email === "adminkareskillhive@klu.ac.in") {
+          navigate("/admin");
+        } else if (isFreelancer) {
           navigate("/dashboard/freelancer");
         } else if (isClient) {
           navigate("/dashboard/client");

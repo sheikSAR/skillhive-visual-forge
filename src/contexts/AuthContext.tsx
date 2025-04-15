@@ -14,6 +14,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   isFreelancer: boolean;
   isClient: boolean;
+  isAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -163,6 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.error(error.message || "Failed to sign in");
         return;
       }
+      
+      // Check if this is the admin user
+      const isAdmin = email === "adminkareskillhive@klu.ac.in";
+      
       toast.success("Signed in successfully!");
     } catch (error: any) {
       console.error("Unexpected signin error:", error);
@@ -193,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isFreelancer = !!profile?.is_freelancer;
   const isClient = !!profile && !profile.is_freelancer;
+  const isAdmin = user?.email === "adminkareskillhive@klu.ac.in";
 
   const value = {
     session,
@@ -204,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     isFreelancer,
     isClient,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

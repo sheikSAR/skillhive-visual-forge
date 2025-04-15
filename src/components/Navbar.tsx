@@ -18,7 +18,7 @@ const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, profile, signOut, isFreelancer, isClient } = useAuth();
+  const { user, profile, signOut, isFreelancer, isClient, isAdmin } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -45,6 +45,14 @@ const Navbar = () => {
       { name: "Contact", path: "/contact" },
     ];
 
+    // Links for admin
+    if (isAdmin) {
+      return [
+        { name: "Admin Dashboard", path: "/admin" },
+        ...commonLinks
+      ];
+    }
+    
     // Links for non-authenticated users
     if (!user) {
       return [
@@ -71,7 +79,6 @@ const Navbar = () => {
       return [
         { name: "Student Dashboard", path: "/dashboard/freelancer" },
         { name: "Browse Projects", path: "/projects" },
-        { name: "Apply as Freelancer", path: "/apply" },
         ...commonLinks
       ];
     }
@@ -135,21 +142,23 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2 min-w-[150px] justify-between">
                     <span className="truncate">
-                      {profile?.full_name || "User"}
+                      {isAdmin ? "Administrator" : profile?.full_name || "User"}
                     </span>
                     <ChevronDown size={16} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5 text-sm font-medium">
-                    {isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
+                    {isAdmin ? "Admin Account" : isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/edit-profile" className="cursor-pointer">
-                      Edit Profile
-                    </Link>
-                  </DropdownMenuItem>
+                  {!isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/edit-profile" className="cursor-pointer">
+                        Edit Profile
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                     Logout
@@ -180,17 +189,19 @@ const Navbar = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <div className="px-2 py-1.5 text-sm font-semibold">
-                  {profile?.full_name || "User"}
+                  {isAdmin ? "Administrator" : profile?.full_name || "User"}
                 </div>
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  {isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
+                  {isAdmin ? "Admin Account" : isClient ? "Client Account" : isFreelancer ? "Student Account" : "User Account"}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/edit-profile" className="cursor-pointer">
-                    Edit Profile
-                  </Link>
-                </DropdownMenuItem>
+                {!isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/edit-profile" className="cursor-pointer">
+                      Edit Profile
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="cursor-pointer">
                   Logout

@@ -8,7 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type FreelancerApplication = {
   id: string;
@@ -24,15 +34,19 @@ type FreelancerApplication = {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAdmin, user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [freelancerApplications, setFreelancerApplications] = useState<FreelancerApplication[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const { data: session } = await supabase.auth.getSession();
-        if (session.session?.user?.email === "adminkareskillhive@klu.ac.in") {
+        if (authLoading) {
+          return;
+        }
+        
+        if (isAdmin) {
           setIsAuthenticated(true);
           fetchFreelancerApplications();
         } else {
@@ -49,38 +63,13 @@ const AdminDashboard = () => {
     };
 
     checkAdmin();
-  }, [navigate]);
+  }, [navigate, isAdmin, authLoading, refreshTrigger]);
 
-  const handleAdminLogin = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-      if (error) {
-        console.error("Admin login error:", error);
-        toast.error(error.message || "Failed to sign in");
-        return;
-      }
-
-      if (data.user?.email === "adminkareskillhive@klu.ac.in") {
-        setIsAuthenticated(true);
-        fetchFreelancerApplications();
-        toast.success("Admin logged in successfully");
-      } else {
-        toast.error("You don't have admin access");
-        await supabase.auth.signOut();
-        navigate("/login");
-      }
-    } catch (error: any) {
-      console.error("Unexpected signin error:", error);
-      toast.error(error?.message || "Failed to sign in");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+    toast.success("Refreshing data...");
   };
 
   const fetchFreelancerApplications = async () => {
@@ -88,7 +77,6 @@ const AdminDashboard = () => {
       setIsLoading(true);
       
       // Use a more optimized query with a single fetch
-      // This helps improve performance by reducing database round trips
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*")
@@ -124,6 +112,7 @@ const AdminDashboard = () => {
 
   const approveFreelancer = async (userId: string) => {
     try {
+      setIsLoading(true);
       const { error } = await supabase
         .from("profiles")
         .update({ is_freelancer: true })
@@ -140,194 +129,158 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while approving freelancer application");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const rejectFreelancer = async (userId: string) => {
-    // For rejection, we could either delete the profile or just leave it marked as not freelancer
-    // For now, we'll just notify and keep the profile as is
     toast.info("Freelancer application rejected");
     // In a real application, you might update some status field or delete the application
   };
 
-  // Show login form if not authenticated
-  if (!isAuthenticated && !isLoading) {
-    return (
-      <div className="container mx-auto py-24 px-4 flex justify-center items-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Admin Login</CardTitle>
-            <CardDescription>Login to access the admin dashboard</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form 
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const email = formData.get("email") as string;
-                const password = formData.get("password") as string;
-                handleAdminLogin(email, password);
-              }}
-            >
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="w-full p-2 border rounded"
-                  defaultValue="adminkareskillhive@klu.ac.in"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="w-full p-2 border rounded"
-                  defaultValue="qwer1432"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
-                  </>
-                ) : (
-                  "Login as Admin"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  // If still checking authentication
+  if (authLoading || isLoading) {
     return (
       <div className="container mx-auto py-24 px-4 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Verifying admin access...</span>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto py-24 px-4">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      
-      <Tabs defaultValue="freelancer-applications">
-        <TabsList className="mb-6">
-          <TabsTrigger value="freelancer-applications">
-            Freelancer Applications ({freelancerApplications.length})
-          </TabsTrigger>
-          <TabsTrigger value="projects">
-            Projects
-          </TabsTrigger>
-          <TabsTrigger value="users">
-            Users
-          </TabsTrigger>
-        </TabsList>
+  // If authenticated as admin, show dashboard
+  if (isAuthenticated) {
+    return (
+      <div className="container mx-auto py-24 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <Button onClick={handleRefresh} className="flex items-center gap-2">
+            <RefreshCw size={16} /> Refresh Data
+          </Button>
+        </div>
         
-        <TabsContent value="freelancer-applications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Freelancer Applications</CardTitle>
-              <CardDescription>
-                Manage freelancer applications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {freelancerApplications.length === 0 ? (
+        <Tabs defaultValue="freelancer-applications" className="space-y-6">
+          <TabsList className="mb-6">
+            <TabsTrigger value="freelancer-applications">
+              Freelancer Applications ({freelancerApplications.length})
+            </TabsTrigger>
+            <TabsTrigger value="projects">
+              Projects
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              Users
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="freelancer-applications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Student Applications</CardTitle>
+                <CardDescription>
+                  Manage student applications to become freelancers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {freelancerApplications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No student applications yet.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableCaption>List of student applications</TableCaption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Application Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {freelancerApplications.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-medium">{app.profile.full_name}</TableCell>
+                          <TableCell>{format(new Date(app.created_at), "PPP")}</TableCell>
+                          <TableCell>
+                            <Badge variant={app.status === "approved" ? "success" : "secondary"}>
+                              {app.status.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {app.status === "pending" ? (
+                              <div className="flex gap-2 justify-end">
+                                <Button 
+                                  size="sm"
+                                  onClick={() => approveFreelancer(app.user_id)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <CheckCircle size={16} /> Approve
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => rejectFreelancer(app.user_id)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <XCircle size={16} /> Reject
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-green-600 font-medium flex items-center justify-end">
+                                <CheckCircle size={16} className="mr-1" /> Approved
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="projects">
+            <Card>
+              <CardHeader>
+                <CardTitle>Projects Management</CardTitle>
+                <CardDescription>
+                  View and manage all projects
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Project management functionality would go here */}
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No freelancer applications yet.</p>
+                  <p className="text-muted-foreground">Project management functionality coming soon.</p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {freelancerApplications.map((app) => (
-                    <div key={app.id} className="border p-4 rounded-md">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium">{app.profile.full_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Applied on {format(new Date(app.created_at), "PPP")}
-                          </p>
-                          {app.profile.bio && (
-                            <p className="mt-2 text-sm">{app.profile.bio}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline">
-                          {app.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                      
-                      {app.status === "pending" && (
-                        <div className="mt-4 flex gap-2">
-                          <Button 
-                            size="sm"
-                            onClick={() => approveFreelancer(app.user_id)}
-                            className="flex items-center gap-1"
-                          >
-                            <CheckCircle size={16} /> Approve
-                          </Button>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => rejectFreelancer(app.user_id)}
-                            className="flex items-center gap-1"
-                          >
-                            <XCircle size={16} /> Reject
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  View and manage all users
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* User management functionality would go here */}
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">User management functionality coming soon.</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="projects">
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects Management</CardTitle>
-              <CardDescription>
-                View and manage all projects
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Project management functionality would go here */}
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Project management functionality coming soon.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>
-                View and manage all users
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* User management functionality would go here */}
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">User management functionality coming soon.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
+  // If not authenticated, show nothing (redirect happens in useEffect)
+  return null;
 };
 
 export default AdminDashboard;

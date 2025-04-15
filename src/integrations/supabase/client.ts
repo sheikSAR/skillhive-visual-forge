@@ -13,12 +13,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: localStorage
   },
   realtime: {
     timeout: 30000 // Extend timeout for better connection stability
   },
   global: {
-    fetch: (url, options) => fetch(url, options) // Fix the spread argument error
+    headers: {
+      'x-application-name': 'kare-skillhive'
+    }
+  },
+  db: {
+    schema: 'public'
   }
 });
