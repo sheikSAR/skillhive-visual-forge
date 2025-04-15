@@ -41,7 +41,7 @@ const TrackProjects = () => {
         .select(`*, profile:profiles(*)`)
         .in(
           "project_id", 
-          projectsData.map(project => project.id)
+          projectsData && projectsData.length > 0 ? projectsData.map(project => project.id) : []
         );
 
       if (applicationsError) {
@@ -49,8 +49,8 @@ const TrackProjects = () => {
         toast.error("Failed to load applications");
       }
 
-      setProjects(projectsData as ProjectType[]);
-      setApplications(applicationsData as ApplicationType[]);
+      setProjects(projectsData as ProjectType[] || []);
+      setApplications(applicationsData as ApplicationType[] || []);
     } catch (error) {
       console.error("Unexpected error:", error);
       toast.error("An error occurred while loading your projects");
@@ -116,7 +116,7 @@ const TrackProjects = () => {
 
   // Get applications for a specific project
   const getProjectApplications = (projectId: string) => 
-    applications.filter(app => app.project_id === projectId);
+    applications ? applications.filter(app => app.project_id === projectId) : [];
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -261,7 +261,7 @@ const TrackProjects = () => {
             )}
           </TabsContent>
           
-          {/* Other tabs with similar content structure */}
+          {/* Assigned Projects Tab */}
           <TabsContent value="assigned" className="space-y-6">
             {assignedProjects.length === 0 ? (
               <div className="text-center py-8">
@@ -298,7 +298,7 @@ const TrackProjects = () => {
                     
                     <div className="mt-4">
                       <h3 className="text-lg font-semibold mb-2">Assigned Freelancer</h3>
-                      {applications.filter(app => app.project_id === project.id && app.status === "approved").map(app => (
+                      {applications && applications.filter(app => app.project_id === project.id && app.status === "approved").map(app => (
                         <div key={app.id} className="border p-4 rounded-md">
                           <p className="font-medium">{app.profile?.full_name || "Anonymous"}</p>
                           <Button 
