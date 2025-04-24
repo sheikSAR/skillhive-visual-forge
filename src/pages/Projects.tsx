@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { ProjectType } from "@/lib/supabase";
+import { database } from "@/services/database";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Search, Briefcase, Calendar, DollarSign, Filter, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 // Sample projects data for default projects
 const defaultProjects = [
@@ -56,7 +56,7 @@ const defaultProjects = [
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("all");
-  const [clientProjects, setClientProjects] = useState<ProjectType[]>([]);
+  const [clientProjects, setClientProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { user, isFreelancer } = useAuth();
   const navigate = useNavigate();
@@ -65,18 +65,21 @@ const Projects = () => {
     const fetchClientProjects = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("status", "open");
+        const { data, error } = await database.getProjects();
         
         if (error) {
           console.error("Error fetching projects:", error);
+          toast.error("Failed to load projects");
         } else {
-          setClientProjects(data || []);
+          // Filter only open projects from clients
+          const openProjects = (data || []).filter((project: any) => 
+            project.status === "open" && project.client_id !== "default"
+          );
+          setClientProjects(openProjects);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
+        toast.error("An error occurred while loading projects");
       } finally {
         setIsLoading(false);
       }
@@ -208,7 +211,7 @@ const Projects = () => {
                         <div className="mt-4">
                           <p className="text-sm font-medium mb-1">Skills:</p>
                           <div className="flex flex-wrap gap-1">
-                            {project.skills?.map((skill, idx) => (
+                            {project.skills && Array.isArray(project.skills) && project.skills.map((skill: string, idx: number) => (
                               <Badge key={idx} variant="secondary" className="text-xs">
                                 {skill}
                               </Badge>
