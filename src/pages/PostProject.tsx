@@ -105,6 +105,7 @@ const PostProject = () => {
     }
   };
 
+  // Early return if not a client (prevent rendering form)
   if (!user) {
     navigate("/login");
     return null;
