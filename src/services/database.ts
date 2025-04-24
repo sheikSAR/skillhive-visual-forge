@@ -74,6 +74,18 @@ export const database = {
     }
   },
   
+  getClientProjects: async (clientId: string) => {
+    try {
+      const response = await axios.get(`${API_URL}/projects/client/${clientId}`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || 'Failed to fetch client projects' 
+      };
+    }
+  },
+
   createProject: async (projectData: ProjectData) => {
     try {
       const response = await axios.post(`${API_URL}/projects`, projectData);
@@ -82,6 +94,18 @@ export const database = {
       return { 
         data: null, 
         error: error.response?.data?.error || 'Failed to create project' 
+      };
+    }
+  },
+
+  updateProjectStatus: async (projectId: string, status: string) => {
+    try {
+      const response = await axios.put(`${API_URL}/projects/${projectId}/status`, { status });
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return {
+        data: null,
+        error: error.response?.data?.error || 'Failed to update project status'
       };
     }
   },
@@ -111,6 +135,19 @@ export const database = {
     }
   },
   
+  getProjectApplications: async (projectIds: string[]) => {
+    try {
+      const queryString = projectIds.map(id => `projectId=${id}`).join('&');
+      const response = await axios.get(`${API_URL}/applications/projects?${queryString}`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || 'Failed to fetch project applications' 
+      };
+    }
+  },
+  
   updateApplicationStatus: async (id: string, status: string) => {
     try {
       const response = await axios.put(`${API_URL}/applications/${id}`, { status });
@@ -119,6 +156,33 @@ export const database = {
       return { 
         data: null, 
         error: error.response?.data?.error || 'Failed to update application' 
+      };
+    }
+  },
+  
+  // Freelancer management methods
+  getFreelancerApplications: async () => {
+    try {
+      const response = await axios.get(`${API_URL}/users/freelancers`);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || 'Failed to fetch freelancer applications' 
+      };
+    }
+  },
+
+  updateFreelancerStatus: async (userId: string, isFreelancer: boolean) => {
+    try {
+      const response = await axios.put(`${API_URL}/users/${userId}/freelancer-status`, { 
+        is_freelancer: isFreelancer 
+      });
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || 'Failed to update freelancer status' 
       };
     }
   },
@@ -144,6 +208,19 @@ export const database = {
       return { 
         data: null, 
         error: error.response?.data?.error || 'Failed to delete user' 
+      };
+    }
+  },
+
+  // User profile methods
+  updateUserProfile: async (userId: string, profileData: any) => {
+    try {
+      const response = await axios.put(`${API_URL}/users/${userId}/profile`, profileData);
+      return { data: response.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || 'Failed to update profile' 
       };
     }
   }

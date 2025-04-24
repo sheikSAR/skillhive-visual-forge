@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { database } from "@/services/database";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ const PostProject = () => {
         ? data.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
         : [];
 
-      const { error } = await supabase.from("projects").insert({
+      const { data: responseData, error } = await database.createProject({
         title: data.title,
         description: data.description,
         budget: Number(data.budget),
@@ -86,12 +86,12 @@ const PostProject = () => {
         category: data.category,
         skills: skillsArray,
         client_id: user.id,
-        status: "open",
+        status: "open"
       });
 
       if (error) {
         console.error("Error posting project:", error);
-        toast.error(error.message || "Failed to post project");
+        toast.error(error || "Failed to post project");
         return;
       }
 

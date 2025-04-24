@@ -117,6 +117,20 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+app.get('/api/projects/client/:clientId', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const [projects] = await pool.query(
+      'SELECT * FROM projects WHERE client_id = ? ORDER BY created_at DESC',
+      [clientId]
+    );
+    res.json(projects);
+  } catch (error) {
+    console.error('Error fetching client projects:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/projects', async (req, res) => {
   try {
     const { title, description, budget, deadline, category, skills, client_id } = req.body;
@@ -142,6 +156,23 @@ app.post('/api/projects', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/projects/:projectId/status', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { status } = req.body;
+    
+    await pool.query(
+      'UPDATE projects SET status = ? WHERE id = ?',
+      [status, projectId]
+    );
+    
+    res.json({ message: `Project status updated to ${status}` });
+  } catch (error) {
+    console.error('Error updating project status:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -188,6 +219,35 @@ app.get('/api/applications', async (req, res) => {
   }
 });
 
+app.get('/api/applications/projects', async (req, res) => {
+  try {
+    const projectIds = req.query.projectId;
+    
+    if (!projectIds) {
+      return res.status(400).json({ error: 'Project IDs are required' });
+    }
+    
+    // Handle both single ID and array of IDs
+    const ids = Array.isArray(projectIds) ? projectIds : [projectIds];
+    
+    // Use placeholders for each ID
+    const placeholders = ids.map(() => '?').join(',');
+    
+    const [applications] = await pool.query(`
+      SELECT a.*, p.title as project_title, s.name as user_name, s.email as user_email
+      FROM applications a
+      JOIN projects p ON a.project_id = p.id
+      JOIN sign_up s ON a.user_id = s.id
+      WHERE a.project_id IN (${placeholders})
+    `, ids);
+    
+    res.json(applications);
+  } catch (error) {
+    console.error('Error fetching project applications:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.put('/api/applications/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -230,6 +290,56 @@ app.get('/api/users', async (req, res) => {
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/users/freelancers', async (req, res) => {
+  try {
+    const [users] = await pool.query(
+      'SELECT * FROM sign_up WHERE email != ? AND is_freelancer = 0',
+      ['adminkareskillhive@klu.ac.in']
+    );
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching freelancer applications:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/users/:userId/freelancer-status', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { is_freelancer } = req.body;
+    
+    await pool.query(
+      'UPDATE sign_up SET is_freelancer = ? WHERE id = ?',
+      [is_freelancer, userId]
+    );
+    
+    res.json({ message: `User freelancer status updated successfully` });
+  } catch (error) {
+    console.error('Error updating freelancer status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/users/:userId/profile', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const profileData = req.body;
+    
+    // Extract fields from profileData
+    const { full_name, bio } = profileData;
+    
+    await pool.query(
+      'UPDATE sign_up SET name = ?, bio = ? WHERE id = ?',
+      [full_name, bio, userId]
+    );
+    
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
