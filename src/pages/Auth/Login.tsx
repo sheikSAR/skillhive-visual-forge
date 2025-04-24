@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { signIn, isFreelancer, isClient, isAdmin } = useAuth();
+  const { signIn, user, isFreelancer, isClient, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,23 +32,37 @@ const Login = () => {
     },
   });
 
+  // Handle redirection if user is already logged in
+  useEffect(() => {
+    if (user && !loading) {
+      if (isAdmin) {
+        navigate("/admin");
+      } else if (isClient) {
+        navigate("/dashboard/client");
+      } else if (isFreelancer) {
+        navigate("/dashboard/freelancer");
+      }
+    }
+  }, [user, loading, isAdmin, isClient, isFreelancer, navigate]);
+
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
       
-      // Wait a moment for auth state to update
+      // Wait a bit for auth state to update before redirect attempt
       setTimeout(() => {
         if (data.email === "adminkareskillhive@klu.ac.in") {
           navigate("/admin");
-        } else if (isFreelancer) {
-          navigate("/dashboard/freelancer");
         } else if (isClient) {
           navigate("/dashboard/client");
+        } else if (isFreelancer) {
+          navigate("/dashboard/freelancer");
         } else {
-          navigate("/");
+          // Default fallback in case role hasn't been determined yet
+          navigate("/dashboard");
         }
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error("Login error:", error);
     } finally {
@@ -59,6 +73,11 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Don't render login form if already authenticated
+  if (user && !loading) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto flex items-center justify-center min-h-screen px-4 py-16">

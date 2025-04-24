@@ -66,10 +66,10 @@ const DashboardRouter = () => {
   
   if (isAdmin) {
     return <Navigate to="/admin" replace />;
-  } else if (isFreelancer) {
-    return <Navigate to="/dashboard/freelancer" replace />;
   } else if (isClient) {
     return <Navigate to="/dashboard/client" replace />;
+  } else if (isFreelancer) {
+    return <Navigate to="/dashboard/freelancer" replace />;
   } else {
     return <Navigate to="/login" replace />;
   }
