@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { database } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -69,8 +69,12 @@ const AdminDashboard = () => {
     try {
       setIsLoading(true);
       
-      // Use the database service instead of Supabase
-      const { data, error } = await database.getFreelancerApplications();
+      // Use a more optimized query with a single fetch
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("is_freelancer", false)
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching freelancer applications:", error);
@@ -78,16 +82,16 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Format data if needed
-      const formattedApplications = (data || []).map(user => ({
-        id: user.id,
-        user_id: user.id,
+      // Format as applications
+      const formattedApplications = profiles.map(profile => ({
+        id: profile.id,
+        user_id: profile.user_id,
         profile: {
-          full_name: user.name || "Anonymous",
-          bio: user.bio || "",
+          full_name: profile.full_name || "Anonymous",
+          bio: profile.bio,
         },
-        status: user.is_freelancer ? "approved" : "pending",
-        created_at: user.created_at || new Date().toISOString(),
+        status: profile.is_freelancer ? "approved" : "pending",
+        created_at: profile.created_at,
       }));
 
       setFreelancerApplications(formattedApplications);

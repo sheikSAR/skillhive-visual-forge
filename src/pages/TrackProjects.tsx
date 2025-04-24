@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { database } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
+import { ProjectType, ApplicationType } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,8 @@ import { Loader2 } from "lucide-react";
 const TrackProjects = () => {
   const { user, isClient } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [applications, setApplications] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectType[]>([]);
+  const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchClientProjects = useCallback(async () => {
@@ -23,7 +24,11 @@ const TrackProjects = () => {
     try {
       setIsLoading(true);
       
-      const { data: projectsData, error: projectsError } = await database.getClientProjects(user.id);
+      const { data: projectsData, error: projectsError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("client_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (projectsError) {
         console.error("Error fetching projects:", projectsError);
@@ -37,8 +42,13 @@ const TrackProjects = () => {
       setProjects(safeProjectsData);
 
       if (safeProjectsData.length > 0) {
-        const projectIds = safeProjectsData.map(project => project.id);
-        const { data: applicationsData, error: applicationsError } = await database.getProjectApplications(projectIds);
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from("applications")
+          .select(`*, profile:profiles(*)`)
+          .in(
+            "project_id", 
+            safeProjectsData.map(project => project.id)
+          );
 
         if (applicationsError) {
           console.error("Error fetching applications:", applicationsError);
@@ -69,8 +79,10 @@ const TrackProjects = () => {
   const updateApplicationStatus = async (appId: string, status: string) => {
     try {
       setIsLoading(true);
-      
-      const { error } = await database.updateApplicationStatus(appId, status);
+      const { error } = await supabase
+        .from("applications")
+        .update({ status })
+        .eq("id", appId);
 
       if (error) {
         console.error("Error updating application:", error);
@@ -81,7 +93,10 @@ const TrackProjects = () => {
       if (status === "approved") {
         const application = applications.find(app => app.id === appId);
         if (application) {
-          await database.updateProjectStatus(application.project_id, "assigned");
+          await supabase
+            .from("projects")
+            .update({ status: "assigned" })
+            .eq("id", application.project_id);
         }
       }
 
@@ -216,7 +231,7 @@ const TrackProjects = () => {
                             <div key={app.id} className="border p-4 rounded-md">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <p className="font-medium">{app.user_name || "Anonymous"}</p>
+                                  <p className="font-medium">{app.profile?.full_name || "Anonymous"}</p>
                                   <p className="text-sm text-muted-foreground">
                                     Applied on {format(new Date(app.created_at), "PPP")}
                                   </p>
@@ -296,15 +311,14 @@ const TrackProjects = () => {
                       <h3 className="text-lg font-semibold mb-2">Assigned Freelancer</h3>
                       {applications && applications.filter(app => app.project_id === project.id && app.status === "approved").map(app => (
                         <div key={app.id} className="border p-4 rounded-md">
-                          <p className="font-medium">{app.user_name || "Anonymous"}</p>
+                          <p className="font-medium">{app.profile?.full_name || "Anonymous"}</p>
                           <Button 
                             className="mt-4"
                             onClick={async () => {
-                              const { error } = await database.updateProjectStatus(project.id, "completed");
-                              if (error) {
-                                toast.error("Failed to mark project as completed");
-                                return;
-                              }
+                              await supabase
+                                .from("projects")
+                                .update({ status: "completed" })
+                                .eq("id", project.id);
                               fetchClientProjects();
                               toast.success("Project marked as completed!");
                             }}

@@ -1,7 +1,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { database } from "@/services/database";
+import { supabase } from "@/lib/supabase";
+import { ProjectType, ApplicationType } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 const ClientDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -34,8 +35,11 @@ const ClientDashboard = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Fetch client's projects using our database service
-        const { data: projectsData, error: projectsError } = await database.getClientProjects(user.id);
+        // Fetch client's projects
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('client_id', user.id);
 
         if (projectsError) {
           throw projectsError;

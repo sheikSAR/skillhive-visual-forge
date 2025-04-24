@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { database } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CheckCircle, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,9 +39,10 @@ const FreelancerApplicationsList = ({ applications, onRefresh }: FreelancerAppli
   const approveFreelancer = async (userId: string) => {
     try {
       setProcessingIds(prev => [...prev, userId]);
-      
-      // Using our database service instead of Supabase
-      const { error } = await database.updateFreelancerStatus(userId, true);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_freelancer: true })
+        .eq("user_id", userId);
 
       if (error) {
         console.error("Error approving freelancer:", error);
