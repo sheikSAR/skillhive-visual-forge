@@ -19,6 +19,7 @@ export interface ProjectData {
   category: string;
   skills: string[];
   client_id: string;
+  status?: string; // Added the status property as optional
 }
 
 export interface ApplicationData {

@@ -86,7 +86,7 @@ const PostProject = () => {
         category: data.category,
         skills: skillsArray,
         client_id: user.id,
-        status: "open"
+        status: "open" // Now this is valid with our updated interface
       });
 
       if (error) {
